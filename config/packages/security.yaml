@@ -4,14 +4,23 @@ security:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        users_in_memory: { memory: null }
+        # used to reload user from session & other features (e.g. switch_user)
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         main:
             lazy: true
-            provider: users_in_memory
+            provider: app_user_provider
+            custom_authenticator: App\Security\LoginFormAuthenticator
+            logout:
+                path: app_logout
+                # where to redirect after logout
+                target: app_login
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#the-firewall
@@ -20,10 +29,24 @@ security:
             # switch_user: true
 
     # Easy way to control access for large sections of your site
-    # Note: Only the *first* access control that matches will be used
+    # Note: Le premier access control qui correspond est appliqué
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        #  Un utilisateur anonyme a uniquement accès à la page de connexion (route /login)
+        # correspond à /login/*
+        - { path: '^/login', roles: PUBLIC_ACCESS }
+
+        #  Un administrateur a accès à la gestion des catégories
+        # correspond à /categorie/* sauf si la règle précédente s'applique
+        - { path: '^/categorie', roles: ROLE_ADMIN }
+
+        #  Un administrateur a accès à la gestion des catégories
+        # correspond à /categorie/* sauf si la règle précédente s'applique
+        - { path: '^/user', roles: ROLE_ADMIN }
+
+        #  Un utilisateur a accès à tout sauf la gestion des catégories
+        # correspond à /* sauf si la règle précédente s'applique
+        - { path: '^/*', roles: [ROLE_ADMIN, ROLE_USER] }
+
 
 when@test:
     security:
